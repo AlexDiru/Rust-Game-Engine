@@ -3,9 +3,13 @@ mod shaders;
 #[macro_use]
 extern crate glium;
 extern crate image;
+extern crate glutin;
 
 use std::io::Cursor;
+use glutin::event::ElementState;
+use glutin::event::VirtualKeyCode::P;
 use glutin::event::WindowEvent::KeyboardInput;
+use crate::ElementState::Pressed;
 
 fn main() {
     #[allow(unused_imports)]
@@ -58,6 +62,11 @@ fn main() {
 
     let mut position = nalgebra_glm::Vec3::new(0.5, 0.2, -3.0);
 
+    let mut movingForward = false;
+    let mut movingBackward = false;
+    let mut movingLeft = false;
+    let mut movingRight = false;
+
     event_loop.run(move |event, _, control_flow| {
         let next_frame_time = std::time::Instant::now() +
             std::time::Duration::from_nanos(16_666_667);
@@ -69,19 +78,19 @@ fn main() {
                     match input.scancode {
                         13 => {
                             // w
-                            position.z = position.z + 0.1;
+                            movingForward = input.state == Pressed;
                         },
                         0 => {
                             // a
-                            position.x = position.x - 0.1;
+                            movingLeft = input.state == Pressed;
                         },
                         1 => {
                             // s
-                            position.z = position.z - 0.1;
+                            movingBackward = input.state == Pressed;
                         },
                         2 => {
                             // d
-                            position.x = position.x + 0.1;
+                            movingRight = input.state == Pressed;
                         }
                         _ => return
                     }
@@ -99,6 +108,22 @@ fn main() {
                 _ => return,
             },
             _ => return,
+        }
+
+        if movingForward {
+            position.z = position.z + 0.1;
+        }
+
+        if movingBackward {
+            position.z = position.z - 0.1;
+        }
+
+        if movingLeft {
+            position.x = position.x - 0.1;
+        }
+
+        if movingRight {
+            position.x = position.x + 0.1;
         }
 
         let mut target = display.draw();
