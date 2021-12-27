@@ -1097,6 +1097,7 @@ name = "rust-engine"
 version = "0.1.0"
 dependencies = [
  "glium",
+ "glutin",
  "image",
  "nalgebra-glm",
 ]

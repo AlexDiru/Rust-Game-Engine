@@ -5,6 +5,7 @@ extern crate glium;
 extern crate image;
 
 use std::io::Cursor;
+use glutin::event::WindowEvent::KeyboardInput;
 
 fn main() {
     #[allow(unused_imports)]
@@ -55,6 +56,8 @@ fn main() {
         0.0, 0.0, 0.0, 1.0f32
     );
 
+    let mut position = nalgebra_glm::Vec3::new(0.5, 0.2, -3.0);
+
     event_loop.run(move |event, _, control_flow| {
         let next_frame_time = std::time::Instant::now() +
             std::time::Duration::from_nanos(16_666_667);
@@ -62,6 +65,28 @@ fn main() {
 
         match event {
             glutin::event::Event::WindowEvent { event, .. } => match event {
+                glutin::event::WindowEvent::KeyboardInput { input, .. } => {
+                    match input.scancode {
+                        13 => {
+                            // w
+                            position.z = position.z + 0.1;
+                        },
+                        0 => {
+                            // a
+                            position.x = position.x - 0.1;
+                        },
+                        1 => {
+                            // s
+                            position.z = position.z - 0.1;
+                        },
+                        2 => {
+                            // d
+                            position.x = position.x + 0.1;
+                        }
+                        _ => return
+                    }
+                    return;
+                },
                 glutin::event::WindowEvent::CloseRequested => {
                     *control_flow = glutin::event_loop::ControlFlow::Exit;
                     return;
@@ -79,7 +104,7 @@ fn main() {
         let mut target = display.draw();
         target.clear_color_and_depth((0.0, 0.0, 1.0, 1.0), 1.0);
 
-        let view = view_matrix(&[0.5, 0.2, -3.0], &[-0.5, -0.2, 3.0], &[0.0, 1.0, 0.0]);
+        let view = view_matrix(&position, &[-0.5, -0.2, 3.0], &[0.0, 1.0, 0.0]);
 
         let (width, height) = target.get_dimensions();
         let mut glm_perspective = nalgebra_glm::perspective_lh(
@@ -118,7 +143,7 @@ fn main() {
 }
 
 
-fn view_matrix(position: &[f32; 3], direction: &[f32; 3], up: &[f32; 3]) -> [[f32; 4]; 4] {
+fn view_matrix(position: &nalgebra_glm::Vec3, direction: &[f32; 3], up: &[f32; 3]) -> [[f32; 4]; 4] {
     let f = {
         let f = direction;
         let len = f[0] * f[0] + f[1] * f[1] + f[2] * f[2];
@@ -140,9 +165,9 @@ fn view_matrix(position: &[f32; 3], direction: &[f32; 3], up: &[f32; 3]) -> [[f3
         f[2] * s_norm[0] - f[0] * s_norm[2],
         f[0] * s_norm[1] - f[1] * s_norm[0]];
 
-    let p = [-position[0] * s_norm[0] - position[1] * s_norm[1] - position[2] * s_norm[2],
-        -position[0] * u[0] - position[1] * u[1] - position[2] * u[2],
-        -position[0] * f[0] - position[1] * f[1] - position[2] * f[2]];
+    let p = [-position.x * s_norm[0] - position.y * s_norm[1] - position.z * s_norm[2],
+        -position.x * u[0] - position.y * u[1] - position.z * u[2],
+        -position.x * f[0] - position.y * f[1] - position.z * f[2]];
 
     [
         [s_norm[0], u[0], f[0], 0.0],
