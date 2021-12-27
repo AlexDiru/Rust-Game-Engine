@@ -5,7 +5,6 @@ extern crate glium;
 extern crate image;
 
 use std::io::Cursor;
-use nalgebra::{Matrix4, Vector3};
 
 fn main() {
     #[allow(unused_imports)]
@@ -49,20 +48,12 @@ fn main() {
     let program = glium::Program::from_source(&display, shaders::vertex_shader_src, shaders::fragment_shader_src,
                                               None).unwrap();
 
-    let mut model = Matrix4::new(
+    let mut model = nalgebra_glm::Mat4::new(
         1.0, 0.0, 0.0, 0.0,
         0.0, 1.0, 0.0, 0.0,
         0.0, 0.0, 1.0, 0.0,
         0.0, 0.0, 0.0, 1.0f32
     );
-
-    let t_mat = Matrix4::new(
-        1.0, 0.0, 0.0, 0.01,
-        0.0, 1.0,0.0,0.01,
-        0.0,0.0,1.0,0.01,
-        0.0,0.0,0.0,1.0f32
-    );
-
 
     event_loop.run(move |event, _, control_flow| {
         let next_frame_time = std::time::Instant::now() +
@@ -90,28 +81,18 @@ fn main() {
 
         let view = view_matrix(&[0.5, 0.2, -3.0], &[-0.5, -0.2, 3.0], &[0.0, 1.0, 0.0]);
 
-        let perspective = {
-            let (width, height) = target.get_dimensions();
-            let aspect_ratio = height as f32 / width as f32;
+        let (width, height) = target.get_dimensions();
+        let mut glm_perspective = nalgebra_glm::perspective_lh(
+            width as f32 / height as f32,
+            (3.141592 / 3.0) as f32,
+            0.1,
+            1024.0
+        );
 
-            let fov: f32 = 3.141592 / 3.0;
-            let zfar = 1024.0;
-            let znear = 0.1;
+        //model = nalgebra_glm::translate(&model, &nalgebra_glm::vec3(0.01, 0.01, 0.01f32));
+        model = nalgebra_glm::rotate(&model, 0.01, &nalgebra_glm::vec3(0.2, 1.0, 0.2f32).normalize());
 
-            let f = 1.0 / (fov / 2.0).tan();
-
-            [
-                [f *   aspect_ratio   ,    0.0,              0.0              ,   0.0],
-                [         0.0         ,     f ,              0.0              ,   0.0],
-                [         0.0         ,    0.0,  (zfar+znear)/(zfar-znear)    ,   1.0],
-                [         0.0         ,    0.0, -(2.0*zfar*znear)/(zfar-znear),   0.0],
-            ]
-        };
-
-
-        model = model * t_mat;
-
-        let light = [1.4, 0.4, 0.7f32];
+        let light = nalgebra_glm::vec3(1.4, 0.4, 0.7f32);
 
         let params = glium::DrawParameters {
             depth: glium::Depth {
@@ -123,8 +104,14 @@ fn main() {
         };
 
         target.draw(&shape, glium::index::NoIndices(glium::index::PrimitiveType::TriangleStrip), &program,
-                    &uniform! { model:  model.data.0, view: view, perspective: perspective,
-                                u_light: light, diffuse_tex: &diffuse_texture, normal_tex: &normal_map },
+                    &uniform! {
+                        model:  model.data.0,
+                        view: view,
+                        perspective: glm_perspective.data.0,
+                        u_light: light.data.0[0],
+                        diffuse_tex: &diffuse_texture,
+                        normal_tex: &normal_map
+                    },
                     &params).unwrap();
         target.finish().unwrap();
     });
