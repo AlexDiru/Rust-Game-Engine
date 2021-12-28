@@ -10,7 +10,7 @@ pub struct Vertex {
 
 implement_vertex!(Vertex, position, normal, tex_coords);
 
-pub fn create_quad<F: ?Sized>(display: &F) -> glium::vertex::VertexBuffer<Vertex> where F: Facade {
+pub fn create_cube<F: ?Sized>(display: &F) -> glium::vertex::VertexBuffer<Vertex> where F: Facade {
 
     let v_vec = create_cube_vertexes(nalgebra_glm::Vec3::new(0.0, 0.0, 0.0));
 

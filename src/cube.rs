@@ -1,9 +1,14 @@
+use glium::{Frame, VertexBuffer};
+use glium::backend::Facade;
+use crate::geometry::{create_cube, Vertex};
+
 pub struct Cube {
-    mat: nalgebra_glm::Mat4
+    mat: nalgebra_glm::Mat4,
+    vertex_buffer: VertexBuffer<Vertex>
 }
 
 impl Cube {
-    pub fn new() -> Cube {
+    pub fn new<F: ?Sized>(display: &F) -> Cube where F: Facade {
         let mut mat = nalgebra_glm::Mat4::new(
             1.0, 0.0, 0.0, 0.0,
             0.0, 1.0, 0.0, 0.0,
@@ -12,7 +17,8 @@ impl Cube {
         );
 
         Cube {
-            mat
+            mat,
+            vertex_buffer: create_cube(display)
         }
     }
 
@@ -23,5 +29,9 @@ impl Cube {
 
     pub fn get_mat(&self) -> [[f32; 4]; 4] {
         return self.mat.data.0
+    }
+
+    pub fn get_vertex_buffer(&self) -> &VertexBuffer<Vertex> {
+        &self.vertex_buffer
     }
 }

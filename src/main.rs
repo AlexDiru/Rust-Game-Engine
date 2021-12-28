@@ -12,7 +12,6 @@ use glutin::event::ElementState;
 use glutin::event::VirtualKeyCode::P;
 use glutin::event::WindowEvent::KeyboardInput;
 use crate::ElementState::Pressed;
-use crate::geometry::create_quad;
 
 fn main() {
     #[allow(unused_imports)]
@@ -22,8 +21,6 @@ fn main() {
     let wb = glutin::window::WindowBuilder::new();
     let cb = glutin::ContextBuilder::new().with_depth_buffer(24).with_vsync(true);
     let display = glium::Display::new(wb, cb, &event_loop).unwrap();
-
-    let shape = create_quad(&display);
 
     let image = image::load(Cursor::new(&include_bytes!("../assets/tuto-14-diffuse.jpeg")),
                             image::ImageFormat::Jpeg).unwrap().to_rgba8();
@@ -48,7 +45,7 @@ fn main() {
         0.0, 0.0, 1.0, 0.0,
         0.0, 0.0, 0.0, 1.0f32
     );*/
-    let mut obj = cube::Cube::new();
+    let mut obj = cube::Cube::new(&display);
 
     let mut position = nalgebra_glm::Vec3::new(0.5, 0.2, -3.0);
 
@@ -174,7 +171,11 @@ fn main() {
             .. Default::default()
         };
 
-        target.draw(&shape, glium::index::NoIndices(glium::index::PrimitiveType::TriangleStrip), &program,
+        let v_buffer = obj.get_vertex_buffer();
+
+        target.draw(v_buffer,
+                    glium::index::NoIndices(glium::index::PrimitiveType::TriangleStrip),
+                    &program,
                     &uniform! {
                         model: obj.get_mat(),
                         view: view,
