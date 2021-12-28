@@ -1,5 +1,6 @@
 mod shaders;
 mod geometry;
+mod cube;
 
 #[macro_use]
 extern crate glium;
@@ -41,12 +42,13 @@ fn main() {
     let program = glium::Program::from_source(&display, shaders::vertex_shader_src, shaders::fragment_shader_src,
                                               None).unwrap();
 
-    let mut model = nalgebra_glm::Mat4::new(
+    /*let mut model = nalgebra_glm::Mat4::new(
         1.0, 0.0, 0.0, 0.0,
         0.0, 1.0, 0.0, 0.0,
         0.0, 0.0, 1.0, 0.0,
         0.0, 0.0, 0.0, 1.0f32
-    );
+    );*/
+    let mut obj = cube::Cube::new();
 
     let mut position = nalgebra_glm::Vec3::new(0.5, 0.2, -3.0);
 
@@ -123,7 +125,8 @@ fn main() {
 
         if movingBackward {
             position.z = position.z - 0.1;
-        
+        }
+
 
         if movingLeft {
             position.x = position.x - 0.1;
@@ -155,7 +158,7 @@ fn main() {
         );
 
         //model = nalgebra_glm::translate(&model, &nalgebra_glm::vec3(0.01, 0.01, 0.01f32));
-        model = nalgebra_glm::rotate(&model, 0.01, &nalgebra_glm::vec3(0.2, 1.0, 0.2f32).normalize());
+        obj.set_rotation(0.01, 0.2, 1.0, 0.2);
 
         let light = nalgebra_glm::vec3(1.4, 0.4, 0.7f32);
 
@@ -173,7 +176,7 @@ fn main() {
 
         target.draw(&shape, glium::index::NoIndices(glium::index::PrimitiveType::TriangleStrip), &program,
                     &uniform! {
-                        model:  model.data.0,
+                        model: obj.get_mat(),
                         view: view,
                         perspective: glm_perspective.data.0,
                         u_light: light.data.0[0],
