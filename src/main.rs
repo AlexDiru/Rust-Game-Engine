@@ -54,6 +54,9 @@ fn main() {
     let mut movingBackward = false;
     let mut movingLeft = false;
     let mut movingRight = false;
+    let mut movingUp = false;
+    let mut movingDown = false;
+    let mut wireframe_mode = false;
 
     event_loop.run(move |event, _, control_flow| {
         let next_frame_time = std::time::Instant::now() +
@@ -80,7 +83,23 @@ fn main() {
                             // d
                             movingRight = input.state == Pressed;
                         }
-                        _ => return
+                        40 => {
+                            // k
+                            if input.state == Pressed {
+                                wireframe_mode = !wireframe_mode;
+                            }
+                        }
+                        12 => {
+                            // q
+                            movingDown = input.state == Pressed;
+                        }
+                        14 => {
+                            // e
+                            movingUp = input.state == Pressed;
+                        }
+                        _ => {
+                            println!("scancode {}", input.scancode);
+                        }
                     }
                     return;
                 },
@@ -104,7 +123,7 @@ fn main() {
 
         if movingBackward {
             position.z = position.z - 0.1;
-        }
+        
 
         if movingLeft {
             position.x = position.x - 0.1;
@@ -112,6 +131,14 @@ fn main() {
 
         if movingRight {
             position.x = position.x + 0.1;
+        }
+
+        if movingDown {
+            position.y = position.y - 0.1;
+        }
+
+        if movingUp {
+            position.y = position.y + 0.1;
         }
 
         let mut target = display.draw();
@@ -132,7 +159,10 @@ fn main() {
 
         let light = nalgebra_glm::vec3(1.4, 0.4, 0.7f32);
 
+        let polygon_mode = if wireframe_mode { glium::draw_parameters::PolygonMode::Line } else { glium::draw_parameters::PolygonMode::Fill };
+
         let params = glium::DrawParameters {
+            polygon_mode,
             depth: glium::Depth {
                 test: glium::draw_parameters::DepthTest::IfLess,
                 write: true,
