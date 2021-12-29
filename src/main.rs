@@ -15,7 +15,7 @@ use glium::{Surface, Vertex, VertexBuffer};
 use glutin::event::ElementState;
 use glutin::event::VirtualKeyCode::P;
 use glutin::event::WindowEvent::KeyboardInput;
-use nalgebra_glm::{mat4, Mat4, RealNumber, TMat4};
+use nalgebra_glm::{cos, mat4, Mat4, RealNumber, TMat4};
 use crate::cube::Cube;
 use crate::ElementState::Pressed;
 use crate::map::{Map, RenderableMap};
@@ -36,8 +36,8 @@ fn main() {
     let cb = glutin::ContextBuilder::new().with_depth_buffer(24).with_vsync(true);
     let display = glium::Display::new(wb, cb, &event_loop).unwrap();
 
-    let floor_texture = load_texture(&display,"assets/anime.png");
-    let wall_texture = load_texture(&display,"assets/tuto-14-normal.png");
+    let floor_texture = load_texture(&display,"assets/floor.png");
+    let wall_texture = load_texture(&display,"assets/wall.png");
 
     let program = glium::Program::from_source(&display,
                                               shaders::vertex_shader_src,
@@ -48,7 +48,8 @@ fn main() {
     let r_map = RenderableMap::new(map, &display, floor_texture, wall_texture);
 
     let mut camera_position = nalgebra_glm::Vec3::new(0.5, 0.2, -3.0);
-    let camera_direction = nalgebra_glm::Vec3::new(0.0, 0.0, PI);
+    let mut camera_rotation = nalgebra_glm::Vec3::new(0.0, 0.0, 0.0);
+     //(0.0, 0.0, PI);
     let mut light_position = nalgebra_glm::Vec3::new(0.0, 0.0, -2.0);
 
     let mut movingForward = false;
@@ -138,20 +139,25 @@ fn main() {
             _ => return,
         }
 
+        let camera_direction_fwd = compute_direction(camera_rotation.x, camera_rotation.y);
+        let camera_direction_left = compute_direction(camera_rotation.x, camera_rotation.y + (PI/2.0));
+
+        let move_speed = 0.1;
+
         if movingForward {
-            camera_position.z = camera_position.z + 0.1;
+            camera_position = camera_position + (camera_direction_fwd.normalize() * move_speed);
         }
 
         if movingBackward {
-            camera_position.z = camera_position.z - 0.1;
+            camera_position = camera_position - (camera_direction_fwd.normalize() * move_speed);
         }
 
         if movingLeft {
-            camera_position.x = camera_position.x - 0.1;
+            camera_position = camera_position + (camera_direction_left.normalize() * move_speed);
         }
 
         if movingRight {
-            camera_position.x = camera_position.x + 0.1;
+            camera_position = camera_position - (camera_direction_left.normalize() * move_speed);
         }
 
         if movingDown {
@@ -163,11 +169,11 @@ fn main() {
         }
 
         if rightArrowHeld {
-            light_position.x = light_position.x + 0.1;
+            camera_rotation = camera_rotation - nalgebra_glm::vec3(0.0, 0.1, 0.0);
         }
 
         if leftArrowHeld {
-            light_position.x = light_position.x - 0.1;
+            camera_rotation = camera_rotation + nalgebra_glm::vec3(0.0, 0.1, 0.0);
         }
 
         if upArrowHeld {
@@ -178,13 +184,19 @@ fn main() {
             light_position.y = light_position.z - 0.1;
         }
 
+
         let mut target = display.draw();
         target.clear_color_and_depth((0.0, 0.0, 1.0, 1.0), 1.0);
 
-        let view = view_matrix(
+        let view = nalgebra_glm::look_at_lh(
             &camera_position,
-            &camera_direction,
-            &nalgebra_glm::Vec3::new(0.0, 1.0, 0.0));
+            &(camera_position + camera_direction_fwd),
+            &nalgebra_glm::Vec3::new(0.0, 1.0, 0.0)
+        );
+        // let view = view_matrix(
+        //     &camera_position,
+        //     &camera_direction,
+        //     &nalgebra_glm::Vec3::new(0.0, 1.0, 0.0));
 
         let (width, height) = target.get_dimensions();
         let mut glm_perspective = nalgebra_glm::perspective_lh(
@@ -275,4 +287,11 @@ fn mat_to_arr<T>(mat4: nalgebra_glm::TMat4<T>) -> [[T; 4]; 4] where T: RealNumbe
         [mat4[(0,2)], mat4[(1, 2)], mat4[(2, 2)], mat4[(3, 2)] ],
         [mat4[(0,3)], mat4[(1, 3)], mat4[(2, 3)], mat4[(3, 3)] ],
     ]
+}
+
+fn compute_direction(x_angle: f32, y_angle: f32) -> nalgebra_glm::Vec3{
+    nalgebra_glm::Vec3::new(
+        y_angle.cos() * x_angle.cos(),
+        x_angle.sin(),
+        y_angle.sin() * x_angle.cos())
 }
