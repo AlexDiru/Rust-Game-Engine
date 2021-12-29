@@ -2,6 +2,9 @@ mod shaders;
 mod geometry;
 mod cube;
 mod map;
+mod renderable_map;
+mod map_generation;
+mod point;
 
 #[macro_use]
 extern crate glium;
@@ -18,7 +21,8 @@ use glutin::event::WindowEvent::KeyboardInput;
 use nalgebra_glm::{cos, mat4, Mat4, RealNumber, TMat4};
 use crate::cube::Cube;
 use crate::ElementState::Pressed;
-use crate::map::{Map, RenderableMap};
+use crate::map::{Map};
+use crate::renderable_map::{RenderableMap};
 
 fn load_texture<F: ?Sized>(display: &F, filename: &str) -> glium::texture::SrgbTexture2d where F: Facade {
     let image = image::io::Reader::open(filename).unwrap().decode().unwrap().to_rgba8();
