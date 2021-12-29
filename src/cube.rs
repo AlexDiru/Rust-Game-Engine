@@ -22,7 +22,7 @@ impl Cube {
             mat,
             vertexes: create_cube_vertexes(),
             position: nalgebra_glm::Vec3::new(0.0, 0.0, 0.0),
-            _local_center: nalgebra_glm::Vec3::new(0.5, 0.5, 0.5)
+            _local_center: nalgebra_glm::Vec3::new(0.5, 0.5, 0.5),
         }
     }
 

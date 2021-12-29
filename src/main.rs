@@ -8,12 +8,22 @@ extern crate glium;
 extern crate image;
 extern crate glutin;
 
+use std::f32::consts::PI;
 use std::io::Cursor;
+use glium::backend::Facade;
 use glutin::event::ElementState;
 use glutin::event::VirtualKeyCode::P;
 use glutin::event::WindowEvent::KeyboardInput;
 use nalgebra_glm::{mat4, Mat4, RealNumber, TMat4};
 use crate::ElementState::Pressed;
+use crate::map::{Map, RenderableMap};
+
+fn load_texture<F: ?Sized>(display: &F, filename: &str) -> glium::texture::SrgbTexture2d where F: Facade {
+    let image = image::io::Reader::open(filename).unwrap().decode().unwrap().to_rgba8();
+    let image_dimensions = image.dimensions();
+    let image = glium::texture::RawImage2d::from_raw_rgba_reversed(&image.into_raw(), image_dimensions);
+    glium::texture::SrgbTexture2d::new(display, image).unwrap()
+}
 
 fn main() {
     #[allow(unused_imports)]
@@ -24,45 +34,19 @@ fn main() {
     let cb = glutin::ContextBuilder::new().with_depth_buffer(24).with_vsync(true);
     let display = glium::Display::new(wb, cb, &event_loop).unwrap();
 
-    let image = image::load(Cursor::new(&include_bytes!("../assets/anime.png")),
-                            image::ImageFormat::Png).unwrap().to_rgba8();
-    let image_dimensions = image.dimensions();
-    let image = glium::texture::RawImage2d::from_raw_rgba_reversed(&image.into_raw(), image_dimensions);
-    let diffuse_texture = glium::texture::SrgbTexture2d::new(&display, image).unwrap();
-
-    let image = image::load(Cursor::new(&include_bytes!("../assets/anime.png")),
-                            image::ImageFormat::Png).unwrap().to_rgba8();
-    let image_dimensions = image.dimensions();
-    let image = glium::texture::RawImage2d::from_raw_rgba_reversed(&image.into_raw(), image_dimensions);
-    let normal_map = glium::texture::Texture2d::new(&display, image).unwrap();
+    let floor_texture = load_texture(&display,"assets/anime.png");
+    let wall_texture = load_texture(&display,"assets/tuto-14-normal.png");
 
     let program = glium::Program::from_source(&display,
                                               shaders::vertex_shader_src,
                                               shaders::fragment_shader_custom_light_src,
                                               None).unwrap();
 
-    let mut cubes = [
-        cube::Cube::new(&display),
-        cube::Cube::new(&display),
-        cube::Cube::new(&display),
-        cube::Cube::new(&display),
-        cube::Cube::new(&display),
-        cube::Cube::new(&display),
-        cube::Cube::new(&display),
-        cube::Cube::new(&display),
-        cube::Cube::new(&display)
-    ];
+    let map = Map::new();
+    let r_map = RenderableMap::new(map, &display, floor_texture, wall_texture);
 
-    cubes[0].set_position(-2.0, 0.0, 0.0);
-    cubes[2].set_position(2.0, 0.0, 0.0);
-    cubes[3].set_position(-2.0, -2.0, 0.0);
-    cubes[4].set_position(0.0, -2.0, 0.0);
-    cubes[5].set_position(2.0, -2.0, 0.0);
-    cubes[6].set_position(-2.0, 2.0, 0.0);
-    cubes[7].set_position(0.0, 2.0, 0.0);
-    cubes[8].set_position(2.0, 2.0, 0.0);
-
-    let mut position = nalgebra_glm::Vec3::new(0.5, 0.2, -3.0);
+    let mut camera_position = nalgebra_glm::Vec3::new(0.5, 0.2, -3.0);
+    let camera_direction = nalgebra_glm::Vec3::new(0.0, 0.0, PI);
     let mut light_position = nalgebra_glm::Vec3::new(0.0, 0.0, -2.0);
 
     let mut movingForward = false;
@@ -153,27 +137,27 @@ fn main() {
         }
 
         if movingForward {
-            position.z = position.z + 0.1;
+            camera_position.z = camera_position.z + 0.1;
         }
 
         if movingBackward {
-            position.z = position.z - 0.1;
+            camera_position.z = camera_position.z - 0.1;
         }
 
         if movingLeft {
-            position.x = position.x - 0.1;
+            camera_position.x = camera_position.x - 0.1;
         }
 
         if movingRight {
-            position.x = position.x + 0.1;
+            camera_position.x = camera_position.x + 0.1;
         }
 
         if movingDown {
-            position.y = position.y - 0.1;
+            camera_position.y = camera_position.y - 0.1;
         }
 
         if movingUp {
-            position.y = position.y + 0.1;
+            camera_position.y = camera_position.y + 0.1;
         }
 
         if rightArrowHeld {
@@ -196,8 +180,8 @@ fn main() {
         target.clear_color_and_depth((0.0, 0.0, 1.0, 1.0), 1.0);
 
         let view = view_matrix(
-            &position, // Camera pos
-            &nalgebra_glm::Vec3::new(-0.5, -0.2, 3.0),
+            &camera_position,
+            &camera_direction,
             &nalgebra_glm::Vec3::new(0.0, 1.0, 0.0));
 
         let (width, height) = target.get_dimensions();
@@ -208,11 +192,6 @@ fn main() {
             1024.0
         );
 
-        //model = nalgebra_glm::translate(&model, &nalgebra_glm::vec3(0.01, 0.01, 0.01f32));
-        for mut cube in &mut cubes {
-            let pos = cube.get_position();
-            //cube.rotate(0.01, pos[0], pos[1], pos[2]);
-        }
 
         let polygon_mode = if wireframe_mode { glium::draw_parameters::PolygonMode::Line } else { glium::draw_parameters::PolygonMode::Fill };
 
@@ -226,9 +205,10 @@ fn main() {
             .. Default::default()
         };
 
-        for mut cube in &cubes {
+        for mut cube in r_map.get_walls() {
             let v_buffer = cube.create_vertex_buffer(&display);
             let light = (cube.get_position_vec() + light_position).data.0[0];
+            let texture = r_map.get_wall_texture();
 
             target.draw(&v_buffer,
                         glium::index::NoIndices(glium::index::PrimitiveType::TriangleStrip),
@@ -238,8 +218,8 @@ fn main() {
                             view: view.data.0,
                             perspective: mat_to_arr(glm_perspective),
                             u_light: light,
-                            diffuse_tex: &diffuse_texture,
-                            normal_tex: &diffuse_texture,
+                            diffuse_tex: texture,
+                            normal_tex: texture,
                             intensity: 0.8f32,
                     },
                         &params).unwrap();
