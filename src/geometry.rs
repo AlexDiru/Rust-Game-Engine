@@ -1,5 +1,4 @@
 use glium::backend::Facade;
-use glium::Display;
 
 #[derive(Copy, Clone)]
 pub struct Vertex {
@@ -10,9 +9,9 @@ pub struct Vertex {
 
 implement_vertex!(Vertex, position, normal, tex_coords);
 
-pub fn create_cube<F: ?Sized>(display: &F) -> glium::vertex::VertexBuffer<Vertex> where F: Facade {
+pub fn create_cube<F: ?Sized>(display: &F) -> glium::VertexBuffer<Vertex> where F: Facade {
 
-    let v_vec = create_cube_vertexes(nalgebra_glm::Vec3::new(0.0, 0.0, 0.0));
+    let v_vec = create_cube_vertexes();
 
     return glium::vertex::VertexBuffer::new(
         display,
@@ -20,7 +19,14 @@ pub fn create_cube<F: ?Sized>(display: &F) -> glium::vertex::VertexBuffer<Vertex
     ).unwrap();
 }
 
-fn create_cube_vertexes(position: nalgebra_glm::Vec3) -> Vec<Vertex> {
+pub fn create_vertex_buffer<F: ?Sized>(display: &F, vertexes: &Vec<Vertex>) -> glium::vertex::VertexBuffer<Vertex> where F: Facade {
+    glium::vertex::VertexBuffer::new(
+        display,
+        vertexes.as_slice()
+    ).unwrap()
+}
+
+pub fn create_cube_vertexes() -> Vec<Vertex> {
 
     let cube_vertices: [i32;180] = [
         // Vert x, vert y, vert z, tex x, tex y
@@ -86,7 +92,7 @@ fn create_cube_vertexes(position: nalgebra_glm::Vec3) -> Vec<Vertex> {
         let v = i * 5;
         vs.push(Vertex {
             position: [ cube_vertices[v] as f32, cube_vertices[v + 1] as f32, cube_vertices[v + 2] as f32 ],
-            normal: [0.0, 0.0, 0.0 ],
+            normal: [0.0, 0.0, -1.0 ],
             tex_coords: [ cube_vertices[v + 3] as f32, cube_vertices[v + 4] as f32],
         })
     }
