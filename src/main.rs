@@ -50,11 +50,11 @@ fn main() {
                                               shaders::fragment_shader_custom_light_src,
                                               None).unwrap();
 
-    let map = Map::new();
-    let r_map = RenderableMap::new(map, &display, floor_texture, wall_texture);
+    let r_map = RenderableMap::new(Map::dfs_maze(), &display, floor_texture, wall_texture);
+    let map = r_map.get_map();
 
     let mut camera = Camera {
-        position: nalgebra_glm::Vec3::new(0.0, 0.0, 0.0),
+        position: nalgebra_glm::Vec3::new(map.get_start().x as f32 + 0.5, 0.5, map.get_start().y as f32 + 0.5),
         rotation: nalgebra_glm::Vec3::new(0.0, 0.0, 0.0)
     };
 
@@ -182,6 +182,14 @@ fn main() {
             camera.rotation = camera.rotation + nalgebra_glm::vec3(0.0, 0.1, 0.0);
         }
 
+        if upArrowHeld {
+            camera.rotation = camera.rotation + nalgebra_glm::vec3(0.1, 0.0, 0.0);
+        }
+
+        if downArrowHeld {
+            camera.rotation = camera.rotation - nalgebra_glm::vec3(0.1, 0.0, 0.0);
+        }
+
         let mut target = display.draw();
         target.clear_color_and_depth((0.0, 0.0, 1.0, 1.0), 1.0);
 
@@ -245,4 +253,3 @@ fn mat_to_arr<T>(mat4: nalgebra_glm::TMat4<T>) -> [[T; 4]; 4] where T: RealNumbe
         [mat4[(0,3)], mat4[(1, 3)], mat4[(2, 3)], mat4[(3, 3)] ],
     ]
 }
-

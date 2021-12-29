@@ -1,8 +1,9 @@
 use rand::seq::SliceRandom;
 use rand::{Rng, thread_rng};
+use crate::Map;
 use crate::point::Point;
 
-pub fn dfs_maze(x_size: i32, y_size: i32) -> (Vec<Point>, Vec<Point>) {
+pub fn dfs_maze(x_size: i32, y_size: i32) -> Map {
     let mut floors = Vec::new();
     let mut walls = Vec::new();
     for x in 0..x_size {
@@ -12,6 +13,7 @@ pub fn dfs_maze(x_size: i32, y_size: i32) -> (Vec<Point>, Vec<Point>) {
     }
 
     let mut current = Point::new(1, 1);
+    let start = current;
     let mut visited = Vec::new();
     visited.push(current);
 
@@ -44,15 +46,15 @@ pub fn dfs_maze(x_size: i32, y_size: i32) -> (Vec<Point>, Vec<Point>) {
         }
     }
 
-
-    ( floors, walls )
+    Map::new(walls, floors, start)
 }
 
-fn drunken_walk(steps: i32) -> (Vec<Point>, Vec<Point>) {
+pub fn drunken_walk(steps: i32) -> Map {
     let mut floors = Vec::new();
     let mut walls : Vec<Point> = Vec::new();
 
     let mut current = Point::new(0, 0);
+    let start = current;
 
     for i in 0..steps {
         if !floors.contains(&current) {
@@ -81,7 +83,7 @@ fn drunken_walk(steps: i32) -> (Vec<Point>, Vec<Point>) {
 
     walls = fill_walls(&floors);
 
-    ( floors, walls )
+    Map::new(walls, floors, start)
 }
 
 fn fill_walls(floors: &Vec<Point>) -> Vec<Point> {

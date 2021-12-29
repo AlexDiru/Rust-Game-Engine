@@ -1,5 +1,10 @@
-# Rust Game Engine
+# Rust OpenGL Maze
 
-No clue what I'm going to make, never used Rust before.
+![Screenshot of the game](screenshot.png)
 
-So far this combines the Glium tutorial with the nalgebra library to translate a normal mapped polygon
+Move using WASD, turn with arrow keys
+
+QE moves camera up and down
+
+Depth-first-search maze generation
+

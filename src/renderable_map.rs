@@ -51,4 +51,8 @@ impl RenderableMap {
     pub fn get_floor_texture(&self) -> &glium::texture::SrgbTexture2d {
         &self.floor_texture
     }
+
+    pub fn get_map(&self) -> &Map {
+        &self.map
+    }
 }
