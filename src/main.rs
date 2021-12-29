@@ -5,6 +5,7 @@ mod map;
 mod renderable_map;
 mod map_generation;
 mod point;
+mod camera;
 
 #[macro_use]
 extern crate glium;
@@ -23,6 +24,7 @@ use crate::cube::Cube;
 use crate::ElementState::Pressed;
 use crate::map::{Map};
 use crate::renderable_map::{RenderableMap};
+use crate::camera::{Camera};
 
 fn load_texture<F: ?Sized>(display: &F, filename: &str) -> glium::texture::SrgbTexture2d where F: Facade {
     let image = image::io::Reader::open(filename).unwrap().decode().unwrap().to_rgba8();
@@ -51,10 +53,10 @@ fn main() {
     let map = Map::new();
     let r_map = RenderableMap::new(map, &display, floor_texture, wall_texture);
 
-    let mut camera_position = nalgebra_glm::Vec3::new(0.5, 0.2, -3.0);
-    let mut camera_rotation = nalgebra_glm::Vec3::new(0.0, 0.0, 0.0);
-     //(0.0, 0.0, PI);
-    let mut light_position = nalgebra_glm::Vec3::new(0.0, 0.0, -2.0);
+    let mut camera = Camera {
+        position: nalgebra_glm::Vec3::new(0.0, 0.0, 0.0),
+        rotation: nalgebra_glm::Vec3::new(0.0, 0.0, 0.0)
+    };
 
     let mut movingForward = false;
     let mut movingBackward = false;
@@ -143,73 +145,59 @@ fn main() {
             _ => return,
         }
 
-        let camera_direction_fwd = compute_direction(camera_rotation.x, camera_rotation.y);
-        let camera_direction_left = compute_direction(camera_rotation.x, camera_rotation.y + (PI/2.0));
+        let camera_direction_fwd = camera.get_forward_direction();
+        let camera_direction_left = camera.get_left_direction();
 
         let move_speed = 0.1;
 
         if movingForward {
-            camera_position = camera_position + (camera_direction_fwd.normalize() * move_speed);
+            camera.position = camera.position + (camera_direction_fwd.normalize() * move_speed);
         }
 
         if movingBackward {
-            camera_position = camera_position - (camera_direction_fwd.normalize() * move_speed);
+            camera.position = camera.position - (camera_direction_fwd.normalize() * move_speed);
         }
 
         if movingLeft {
-            camera_position = camera_position + (camera_direction_left.normalize() * move_speed);
+            camera.position = camera.position + (camera_direction_left.normalize() * move_speed);
         }
 
         if movingRight {
-            camera_position = camera_position - (camera_direction_left.normalize() * move_speed);
+            camera.position = camera.position - (camera_direction_left.normalize() * move_speed);
         }
 
         if movingDown {
-            camera_position.y = camera_position.y - 0.1;
+            camera.position.y = camera.position.y - 0.1;
         }
 
         if movingUp {
-            camera_position.y = camera_position.y + 0.1;
+            camera.position.y = camera.position.y + 0.1;
         }
 
         if rightArrowHeld {
-            camera_rotation = camera_rotation - nalgebra_glm::vec3(0.0, 0.1, 0.0);
+            camera.rotation = camera.rotation - nalgebra_glm::vec3(0.0, 0.1, 0.0);
         }
 
         if leftArrowHeld {
-            camera_rotation = camera_rotation + nalgebra_glm::vec3(0.0, 0.1, 0.0);
+            camera.rotation = camera.rotation + nalgebra_glm::vec3(0.0, 0.1, 0.0);
         }
-
-        if upArrowHeld {
-            light_position.y = light_position.z + 0.1;
-        }
-
-        if downArrowHeld {
-            light_position.y = light_position.z - 0.1;
-        }
-
 
         let mut target = display.draw();
         target.clear_color_and_depth((0.0, 0.0, 1.0, 1.0), 1.0);
 
         let view = nalgebra_glm::look_at_lh(
-            &camera_position,
-            &(camera_position + camera_direction_fwd),
+            &camera.position,
+            &(camera.position + camera_direction_fwd),
             &nalgebra_glm::Vec3::new(0.0, 1.0, 0.0)
         );
-        // let view = view_matrix(
-        //     &camera_position,
-        //     &camera_direction,
-        //     &nalgebra_glm::Vec3::new(0.0, 1.0, 0.0));
 
         let (width, height) = target.get_dimensions();
-        let mut glm_perspective = nalgebra_glm::perspective_lh(
+        let mut perspective = nalgebra_glm::perspective_lh(
             width as f32 / height as f32,
             (3.141592 / 3.0) as f32,
             0.1,
             1024.0
         );
-
 
         let polygon_mode = if wireframe_mode { glium::draw_parameters::PolygonMode::Line } else { glium::draw_parameters::PolygonMode::Fill };
 
@@ -235,8 +223,8 @@ fn main() {
                             &program,
                             &uniform! {
                                 model: cube.get_mat(),
-                                view: view.data.0,
-                                perspective: mat_to_arr(glm_perspective),
+                                view: mat_to_arr(view),
+                                perspective: mat_to_arr(perspective),
                                 diffuse_tex: texture,
                                 normal_tex: texture,
                                 intensity: 0.8f32,
@@ -249,41 +237,6 @@ fn main() {
     });
 }
 
-fn view_matrix(position: &nalgebra_glm::Vec3, direction: &nalgebra_glm::Vec3, up: &nalgebra_glm::Vec3) -> Mat4 {
-
-    let f = {
-        let f = direction;
-        let len = f[0] * f[0] + f[1] * f[1] + f[2] * f[2];
-        let len = len.sqrt();
-        [f[0] / len, f[1] / len, f[2] / len]
-    };
-
-    let s = [up[1] * f[2] - up[2] * f[1],
-        up[2] * f[0] - up[0] * f[2],
-        up[0] * f[1] - up[1] * f[0]];
-
-    let s_norm = {
-        let len = s[0] * s[0] + s[1] * s[1] + s[2] * s[2];
-        let len = len.sqrt();
-        [s[0] / len, s[1] / len, s[2] / len]
-    };
-
-    let u = [f[1] * s_norm[2] - f[2] * s_norm[1],
-        f[2] * s_norm[0] - f[0] * s_norm[2],
-        f[0] * s_norm[1] - f[1] * s_norm[0]];
-
-    let p = [-position.x * s_norm[0] - position.y * s_norm[1] - position.z * s_norm[2],
-        -position.x * u[0] - position.y * u[1] - position.z * u[2],
-        -position.x * f[0] - position.y * f[1] - position.z * f[2]];
-
-    nalgebra_glm::mat4(
-        s_norm[0], s_norm[1], s_norm[2], p[0],
-        u[0], u[1], u[2], p[1],
-        f[0], f[1], f[2], p[2],
-        0.0, 0.0, 0.0, 1.0,
-    )
-}
-
 fn mat_to_arr<T>(mat4: nalgebra_glm::TMat4<T>) -> [[T; 4]; 4] where T: RealNumber {
     [
         [mat4[(0,0)], mat4[(1, 0)], mat4[(2, 0)], mat4[(3, 0)] ],
@@ -293,9 +246,3 @@ fn mat_to_arr<T>(mat4: nalgebra_glm::TMat4<T>) -> [[T; 4]; 4] where T: RealNumbe
     ]
 }
 
-fn compute_direction(x_angle: f32, y_angle: f32) -> nalgebra_glm::Vec3{
-    nalgebra_glm::Vec3::new(
-        y_angle.cos() * x_angle.cos(),
-        x_angle.sin(),
-        y_angle.sin() * x_angle.cos())
-}
