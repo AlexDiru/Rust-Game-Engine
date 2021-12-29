@@ -34,14 +34,22 @@ impl Map {
         walls.push(Point::new(2, 0));
         walls.push(Point::new(1, 0));
 
+        let mut floors = Vec::new();
+        floors.push(Point::new(1, 1));
+        floors.push(Point::new(1, 2));
+
         Map {
             walls,
-            floors: Vec::new()
+            floors,
         }
     }
 
     pub fn get_walls(&self) -> &Vec<Point> {
         return &self.walls
+    }
+
+    pub fn get_floors(&self) -> &Vec<Point> {
+        return &self.floors
     }
 }
 
@@ -67,7 +75,7 @@ impl RenderableMap {
 
         for (i, floor) in map.floors.iter().enumerate() {
             let mut cube = Cube::new(display);
-            cube.set_position(floor.x as f32, floor.y as f32, -1.0f32);
+            cube.set_position(floor.x as f32, floor.y as f32, 0.0f32);
             floors.push(cube);
         }
 
@@ -85,7 +93,7 @@ impl RenderableMap {
     }
 
     pub fn get_floors(&self) -> &Vec<Cube> {
-        &self.walls
+        &self.floors
     }
 
     pub fn get_wall_texture(&self) -> &glium::texture::SrgbTexture2d {

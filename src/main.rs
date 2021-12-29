@@ -11,10 +11,12 @@ extern crate glutin;
 use std::f32::consts::PI;
 use std::io::Cursor;
 use glium::backend::Facade;
+use glium::{Surface, Vertex, VertexBuffer};
 use glutin::event::ElementState;
 use glutin::event::VirtualKeyCode::P;
 use glutin::event::WindowEvent::KeyboardInput;
 use nalgebra_glm::{mat4, Mat4, RealNumber, TMat4};
+use crate::cube::Cube;
 use crate::ElementState::Pressed;
 use crate::map::{Map, RenderableMap};
 
@@ -205,30 +207,31 @@ fn main() {
             .. Default::default()
         };
 
-        for mut cube in r_map.get_walls() {
-            let v_buffer = cube.create_vertex_buffer(&display);
-            let light = (cube.get_position_vec() + light_position).data.0[0];
-            let texture = r_map.get_wall_texture();
+        for mut renderables in [
+            ( r_map.get_walls(), r_map.get_wall_texture() ),
+            ( r_map.get_floors(), r_map.get_floor_texture() ) ] {
+            let texture = renderables.1;
+            for mut cube in renderables.0 {
+                let v_buffer = cube.create_vertex_buffer(&display);
 
-            target.draw(&v_buffer,
-                        glium::index::NoIndices(glium::index::PrimitiveType::TriangleStrip),
-                        &program,
-                        &uniform! {
-                            model: cube.get_mat(),
-                            view: view.data.0,
-                            perspective: mat_to_arr(glm_perspective),
-                            u_light: light,
-                            diffuse_tex: texture,
-                            normal_tex: texture,
-                            intensity: 0.8f32,
-                    },
-                        &params).unwrap();
+                target.draw(&v_buffer,
+                            glium::index::NoIndices(glium::index::PrimitiveType::TriangleStrip),
+                            &program,
+                            &uniform! {
+                                model: cube.get_mat(),
+                                view: view.data.0,
+                                perspective: mat_to_arr(glm_perspective),
+                                diffuse_tex: texture,
+                                normal_tex: texture,
+                                intensity: 0.8f32,
+                        },
+                            &params).unwrap();
+            }
         }
 
         target.finish().unwrap();
     });
 }
-
 
 fn view_matrix(position: &nalgebra_glm::Vec3, direction: &nalgebra_glm::Vec3, up: &nalgebra_glm::Vec3) -> Mat4 {
 
